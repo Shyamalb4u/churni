@@ -105,7 +105,7 @@ export default function dashboard() {
                   </div>
 
                   <p className="text-white font-semibold tracking-wide">
-                    0x8F0D53A...50D5D91
+                    0x8F0D53A...50D545D91
                   </p>
                 </div>
 
