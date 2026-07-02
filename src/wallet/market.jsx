@@ -246,8 +246,8 @@ export default function market() {
                       >
                         {/* $ */}
                         {livePrice.toLocaleString(undefined, {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
+                          minimumFractionDigits: 4,
+                          maximumFractionDigits: 4,
                         })}
                       </div>
 
