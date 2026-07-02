@@ -247,8 +247,15 @@ export default function coindetails() {
       },
     });
 
-    // 👇 এইখানে হবে
-    lineSeriesRef.current = chart.addSeries(LineSeries);
+    // 👇 chart ready hoyeche ekhane
+    // lineSeriesRef.current = chart.addSeries(LineSeries);
+    lineSeriesRef.current = chart.addSeries(LineSeries, {
+      priceFormat: {
+        type: "price",
+        precision: 4,
+        minMove: 0.0001,
+      },
+    });
 
     if (!intervalMap[interval]) return;
     fetch(
@@ -358,7 +365,7 @@ export default function coindetails() {
                 {/* Price */}
                 <div
                   id="coin-price"
-                  className={`text-4xl font-black tracking-tight transition-colors duration-300 ${
+                  className={`text-3xl font-black tracking-tight transition-colors duration-300 ${
                     priceFlash === "up"
                       ? "text-green-400"
                       : priceFlash === "down"
@@ -366,7 +373,10 @@ export default function coindetails() {
                         : "text-white"
                   }`}
                 >
-                  {Number(coin?.lastPrice).toLocaleString()}
+                  {Number(coin?.lastPrice).toLocaleString("en-US", {
+                    minimumFractionDigits: 4,
+                    maximumFractionDigits: 4,
+                  })}
                 </div>
 
                 {/* Volume */}
