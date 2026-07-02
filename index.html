@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="shortcut icon" href="/assets/images/favicon.ico" />
+    <link
+      href="/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <title>Quantum Technology</title>
+    <script>
+      (function () {
+        const saved = localStorage.getItem("theme") || "dark";
+        if (saved === "dark") document.documentElement.classList.add("dark");
+        else document.documentElement.classList.remove("dark");
+      })();
+    </script>
+    <link href="/assets/css/index.css" rel="stylesheet" />
+  </head>
+  <body class="font-sans overflow-x-hidden">
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+    <script src="/assets/js/data.js"></script>
+    <script src="/assets/js/charts.js"></script>
+    <script src="/assets/js/components.js"></script>
+    <script src="/assets/js/app.js"></script>
+  </body>
+</html>
