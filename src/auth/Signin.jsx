@@ -1,4 +1,102 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
+
 export default function Signin() {
+  const api_link = import.meta.env.VITE_API_URL;
+  const navigate = useNavigate();
+  const [mail, setMail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isBusi, setIsBusi] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    try {
+      const userInfo = JSON.parse(localStorage.getItem("user"));
+      const address = userInfo.publicKey;
+      if (address) {
+        navigate("/account");
+      }
+    } catch (error) {}
+  }, [navigate]);
+
+  function errorMessage(msgTitle) {
+    //console.log(msgTitle);
+    Swal.fire({
+      icon: "error",
+      title: msgTitle,
+      text: "Please Fill the Required Fields.",
+      confirmButtonText: "OK",
+      confirmButtonColor: "#d44e00",
+      background: "#111827",
+      color: "#fff",
+    });
+  }
+
+  async function onLogin() {
+    console.log(Date.now());
+    setIsBusi(true);
+    if (mail.length < 4) {
+      setIsBusi(false);
+      errorMessage("Invalid Mail Address");
+      return;
+    }
+
+    if (password.length < 6) {
+      setIsBusi(false);
+      errorMessage("Minimum Password Length 6");
+      return;
+    }
+    //////////////////////////
+    let url = api_link + "signin";
+    const data = {
+      mail: mail.trim(),
+      pass: password,
+    };
+    const customHeaders = {
+      "Content-Type": "application/json",
+    };
+    try {
+      const result = await fetch(url, {
+        method: "POST",
+        headers: customHeaders,
+        body: JSON.stringify(data),
+      });
+
+      if (!result.ok) {
+        throw new Error(`HTTP error! status: ${result.status}`);
+      }
+      const reData = await result.json();
+      //console.log(reData);
+      if (reData.message !== "OK") {
+        setIsBusi(false);
+        errorMessage("Login Failed.");
+        return;
+      }
+      if (reData.user.codes === "NO") {
+        setIsBusi(false);
+        errorMessage("Invalid Credintial");
+        return;
+      } else {
+        setIsBusi(false);
+        const uid = reData.user.codes;
+        const name = reData.user.names;
+        const publicKey = reData.user.publicKey;
+        const phrases = reData.user.phrases;
+        const user = {
+          id: uid,
+          name: name,
+          publicKey: publicKey,
+          phrases: phrases,
+        };
+        localStorage.setItem("user", JSON.stringify(user));
+        navigate("/account");
+      }
+    } catch (error) {
+      setIsBusi(false);
+      console.log("Others Error!");
+    }
+  }
   return (
     <>
       <div className="min-h-screen flex justify-center">
@@ -7,40 +105,16 @@ export default function Signin() {
           id="app"
         >
           <div className="min-h-screen bg-bg-dark flex flex-col">
-            <div className="px-6 pt-5">
-              <a
-                href="welcome.html"
-                className="w-10 h-10 rounded-xl bg-surface-2 border border-white/[0.08] flex items-center justify-center transition-all active:scale-95"
-              >
-                <svg
-                  width={20}
-                  height={20}
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="rtl:rotate-180"
-                >
-                  <path d="M19 12H5M12 19l-7-7 7-7" />
-                </svg>
-              </a>
-            </div>
             <div className="flex-1 px-6 pt-8 pb-6 animate-fade-up">
               <div className="mb-9">
-                <div className="w-[80px] h-[80px] rounded-[14px] flex items-center justify-center mb-5">
-                  <img
-                    src="assets/images/logo-192.png"
-                    alt="logo"
-                    className="w-full h-full object-contain"
-                  />
+                <div className="mb-5" style={{ textAlign: "center" }}>
+                  <img src="logo.png" alt="logo" style={{ width: "120px" }} />
                 </div>
-                <h2 className="text-[28px] font-extrabold mb-2">
+                <h2 className="text-[28px] font-extrabold text-center mb-2">
                   Welcome back
                 </h2>
-                <p className="text-white/50 text-[15px]">
-                  Sign in to your Cryptrix account
+                <p className="text-white/50 text-[15px] text-center">
+                  Sign in to your QBOT account
                 </p>
               </div>
               {/* Email */}
@@ -67,7 +141,9 @@ export default function Signin() {
                     type="email"
                     className="w-full bg-surface-2 border border-white/10 rounded-btn h-12 pl-11 pr-4 text-white placeholder-white/30 focus:outline-none focus:border-primary/50 transition-colors font-medium text-sm"
                     placeholder="alex@example.com"
-                    defaultValue="alex.mercer@email.com"
+                    value={mail}
+                    onChange={(e) => setMail(e.target.value)}
+                    maxLength={150}
                   />
                 </div>
               </div>
@@ -92,14 +168,16 @@ export default function Signin() {
                     <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                   </svg>
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     id="pw-input"
                     className="w-full bg-surface-2 border border-white/10 rounded-btn h-12 pl-11 pr-12 text-white placeholder-white/30 focus:outline-none focus:border-primary/50 transition-colors font-medium text-sm"
                     placeholder="Enter your password"
-                    defaultValue="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    maxLength={40}
                   />
                   <button
-                    onclick="togglePw()"
+                    onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors"
                   >
                     <svg
@@ -119,112 +197,35 @@ export default function Signin() {
                 </div>
                 <div className="text-right mt-2">
                   <a
-                    href="forgot-password.html"
+                    href="/"
                     className="text-primary text-[13px] font-semibold"
                   >
                     Forgot password?
                   </a>
                 </div>
               </div>
-              {/* Biometric */}
-              <a
-                href="biometric-auth.html"
-                className="flex items-center gap-3 p-3 bg-surface-2 border border-white/[0.08] rounded-btn mb-6 cursor-pointer hover:border-primary/30 transition-colors"
-              >
-                <div className="w-9 h-9 rounded-[10px] bg-primary/15 flex items-center justify-center flex-shrink-0">
-                  <svg
-                    width={20}
-                    height={20}
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="#00D4AA"
-                    strokeWidth={2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2z" />
-                    <path d="M12 8v4l3 3" />
-                  </svg>
-                </div>
-                <div>
-                  <div className="text-sm font-semibold">
-                    Use Face ID / Fingerprint
-                  </div>
-                  <div className="text-xs text-white/40">
-                    Sign in instantly with biometrics
-                  </div>
-                </div>
-                <svg
-                  className="ml-auto text-white/30"
-                  width={16}
-                  height={16}
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M9 18l6-6-6-6" />
-                </svg>
-              </a>
-              <a
-                href="otp.html"
+
+              <button
+                disabled={isBusi}
+                onClick={() => onLogin()}
                 className="bg-primary text-bg-dark font-bold rounded-btn h-12 flex items-center justify-center gap-2 transition-all active:scale-95 shadow-primary w-full mb-5"
               >
-                Sign In
-              </a>
-              <div className="flex items-center gap-3 mb-5">
-                <div className="flex-1 h-px bg-surface/10" />
-                <span className="text-white/30 text-xs">or sign in with</span>
-                <div className="flex-1 h-px bg-surface/10" />
-              </div>
-              <div className="flex gap-3 mb-6">
-                <button
-                  onclick="showToast('Google sign-in coming soon', 'info')"
-                  className="flex-1 bg-surface-2 border border-white/[0.08] rounded-btn h-11 flex items-center justify-center gap-2 font-semibold text-sm"
-                >
-                  <svg width={18} height={18} viewBox="0 0 24 24">
-                    <path
-                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                      fill="#4285F4"
-                    />
-                    <path
-                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                      fill="#34A853"
-                    />
-                    <path
-                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                      fill="#FBBC05"
-                    />
-                    <path
-                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                      fill="#EA4335"
-                    />
-                  </svg>
-                  Google
-                </button>
-                <button
-                  onclick="showToast('Apple sign-in coming soon', 'info')"
-                  className="flex-1 bg-surface-2 border border-white/[0.08] rounded-btn h-11 flex items-center justify-center gap-2 font-semibold text-sm"
-                >
-                  <svg
-                    width={18}
-                    height={18}
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                  >
-                    <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
-                  </svg>
-                  Apple
-                </button>
-              </div>
+                {isBusi ? (
+                  <>
+                    <span
+                      className="spinner-border spinner-border-sm me-2"
+                      role="status"
+                    ></span>
+                    Connecting...
+                  </>
+                ) : (
+                  <span>Sign In</span>
+                )}
+              </button>
             </div>
             <div className="text-center pb-10 text-sm">
-              <span className="text-white/40">Don't have an account? </span>
-              <a href="signup.html" className="text-primary font-bold">
-                Sign Up
-              </a>
+              <span className="text-white/40">All rights reserved 2026 </span>
+              <span className="text-primary font-bold">QBOT</span>
             </div>
           </div>
         </div>

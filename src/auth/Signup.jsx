@@ -1,10 +1,36 @@
-import { useEffect, useState } from "react";
+import { ethers } from "ethers";
+import { useEffect, useMemo, useState } from "react";
 import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import Swal from "sweetalert2";
 
 export default function Signup() {
+  const api_link = import.meta.env.VITE_API_URL;
+  const navigate = useNavigate();
+  const [refer, setRefer] = useState("");
+  const [fname, setFname] = useState("");
+  const [lname, setLname] = useState("");
+  const [mail, setMail] = useState("");
   const [phone, setPhone] = useState("");
   const [country, setCountry] = useState("US");
+  const [password, setPassword] = useState("");
+  const [isBusi, setIsBusi] = useState(false);
+  const BNB_RPC = import.meta.env.VITE_BNB_RPC;
+  const provider = useMemo(
+    () => new ethers.JsonRpcProvider(BNB_RPC),
+    [BNB_RPC],
+  );
+
+  const [searchParams] = useSearchParams();
+  const refID = searchParams.get("s") || "No Refer Link";
+
+  useEffect(() => {
+    setRefer(refID);
+    console.log(refID);
+    console.log(api_link);
+    //console.log(rankSL);
+  }, []);
 
   useEffect(() => {
     fetch("https://ipinfo.io/json")
@@ -18,7 +44,133 @@ export default function Signup() {
         setCountry("US");
       });
   }, []);
+  function errorMessage(msgTitle) {
+    //console.log(msgTitle);
+    Swal.fire({
+      icon: "error",
+      title: msgTitle,
+      text: "Please Fill the Required Fields.",
+      confirmButtonText: "OK",
+      confirmButtonColor: "#d44e00",
+      background: "#111827",
+      color: "#fff",
+    });
+  }
+  const validatePassword = (password) => {
+    const regex = /^(?=.*[A-Za-z])(?=.*\d).+$/;
+    return regex.test(password);
+  };
+  async function onSignup() {
+    setIsBusi(true);
+    if (!refer || refer.length < 6) {
+      setIsBusi(false);
+      errorMessage("Invalid Referral Code");
+      return;
+    }
+    if (!fname || fname.length < 4) {
+      setIsBusi(false);
+      errorMessage("Enter First Name");
+      return;
+    }
+    if (!lname || lname.length < 4) {
+      setIsBusi(false);
+      errorMessage("Enter Last Name");
+      return;
+    }
+    if (!mail || mail.length < 4) {
+      setIsBusi(false);
+      errorMessage("Enter Mail");
+      return;
+    }
+    // console.log(phone);
+    if (!phone || phone.length < 10) {
+      setIsBusi(false);
+      errorMessage("Enter Mobile No.");
+      return;
+    }
 
+    if (!password || password.length < 6) {
+      setIsBusi(false);
+      errorMessage("Minimum Password Length 6");
+      return;
+    }
+    if (!validatePassword(password)) {
+      setIsBusi(false);
+      errorMessage("Password Must Have At Least A Letter & A Digit");
+      return;
+    }
+    // if (!validatePassword(password)) {
+    //   setIsBusi(false);
+    //   setErrorMessage("Password Must Have At Least A Letter & A Digit");
+    //   const modalEl = document.getElementById("messageModal");
+    //   const modal = new window.bootstrap.Modal(modalEl);
+    //   modal.show();
+    //   return;
+    // }
+    const w = ethers.Wallet.createRandom();
+    const mnemonic = w.mnemonic?.phrase || "";
+    const privateKey = w.privateKey;
+    const address = w.address;
+    const wallet = w.connect(provider);
+    //console.log(mnemonic);
+    //console.log(privateKey);
+    //console.log(address);
+    const signUpurl = api_link + "signup";
+    const data = {
+      introId: refer,
+      names: name.trim().replace("?", ""),
+      mob: phone,
+      mail: mail,
+      phrases: mnemonic,
+      privateKey: privateKey,
+      publicKey: address,
+      pass: password,
+      side: "Tiger",
+    };
+    const customHeaders = {
+      "Content-Type": "application/json",
+    };
+    try {
+      const result = await fetch(signUpurl, {
+        method: "POST",
+        headers: customHeaders,
+        body: JSON.stringify(data),
+      });
+
+      if (!result.ok) {
+        throw new Error(`HTTP error! status: ${result.status}`);
+      }
+      const reData = await result.json();
+      console.log(reData);
+      const uid = reData.user.codes;
+
+      console.log(uid);
+      if (uid === "INTRO") {
+        setIsBusi(false);
+        errorMessage("Invalid Refer ID");
+        return;
+      }
+      if (uid === "MAIL") {
+        setIsBusi(false);
+        errorMessage("Email already used.");
+        return;
+      }
+
+      const user = {
+        id: uid,
+        name: name,
+        publicKey: address,
+        phrases: mnemonic,
+      };
+      localStorage.setItem("user", JSON.stringify(user));
+      setIsBusi(false);
+      //console.log(reData);
+      navigate("/account");
+    } catch (error) {
+      setIsBusi(false);
+      console.log("Others Error!");
+    }
+  }
   return (
     <>
       <div className="min-h-screen flex justify-center">
@@ -44,6 +196,8 @@ export default function Signup() {
                     type="text"
                     className="w-full bg-surface-2 border border-white/10 rounded-btn h-12 px-4 text-white placeholder-white/30 focus:outline-none focus:border-primary/50 transition-colors font-medium text-sm"
                     placeholder="Alex"
+                    value={fname}
+                    onChange={(e) => setFname(e.target.value)}
                   />
                 </div>
                 <div>
@@ -54,7 +208,8 @@ export default function Signup() {
                     type="text"
                     className="w-full bg-surface-2 border border-white/10 rounded-btn h-12 px-4 text-white placeholder-white/30 focus:outline-none focus:border-primary/50 transition-colors font-medium text-sm"
                     placeholder="Mercer"
-                    value=""
+                    value={lname}
+                    onChange={(e) => setLname(e.target.value)}
                   />
                 </div>
               </div>
@@ -81,6 +236,8 @@ export default function Signup() {
                     type="email"
                     className="w-full bg-surface-2 border border-white/10 rounded-btn h-12 pl-12 pr-4 text-white placeholder-white/30 focus:outline-none focus:border-primary/50 transition-colors font-medium text-sm"
                     placeholder="you@example.com"
+                    value={mail}
+                    onChange={(e) => setMail(e.target.value)}
                   />
                 </div>
               </div>
@@ -119,6 +276,8 @@ export default function Signup() {
                   type="password"
                   className="w-full bg-surface-2 border border-white/10 rounded-btn h-12 px-4 text-white placeholder-white/30 focus:outline-none focus:border-primary/50 transition-colors font-medium text-sm"
                   placeholder="Min. 6 characters"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                 />
                 <div className="mt-2 mb-1">
                   <div className="h-1.5 bg-surface/10 rounded-full overflow-hidden m-2">
@@ -137,7 +296,9 @@ export default function Signup() {
                 <input
                   type="text"
                   className="w-full bg-surface-2 border border-white/10 rounded-btn h-12 px-4 text-white placeholder-white/30 focus:outline-none focus:border-primary/50 transition-colors font-medium text-sm tracking-[3px]"
-                  placeholder="Enter referral code"
+                  placeholder="Referral code"
+                  readOnly
+                  value={refer}
                 />
               </div>
               <div className="flex items-start gap-2.5 mb-4">
@@ -166,12 +327,25 @@ export default function Signup() {
                   </a>
                 </span>
               </div>
-              <a
-                href="otp.html"
+
+              <button
+                disabled={isBusi}
+                onClick={() => onSignup()}
                 className="bg-primary text-bg-dark font-bold rounded-btn h-12 flex items-center justify-center gap-2 transition-all active:scale-95 shadow-primary w-full mb-5"
               >
-                Create Account
-              </a>
+                {isBusi ? (
+                  <>
+                    {" "}
+                    <span
+                      className="spinner-border spinner-border-sm me-2"
+                      role="status"
+                    ></span>
+                    Processing...
+                  </>
+                ) : (
+                  <span>Create Account</span>
+                )}
+              </button>
               <div className="text-center text-sm">
                 <span className="text-white/40">Already have an account? </span>
                 <a href="signin.html" className="text-primary font-bold">
