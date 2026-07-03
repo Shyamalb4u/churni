@@ -665,67 +665,9 @@ export default function coindetails() {
                 </div>
               </div>
             </div>
-            {/* Quick links */}
-            <div className="px-5 mb-2 grid grid-cols-3 gap-2">
-              <a
-                href="price-chart-full.html"
-                className="bg-surface-2 border border-white/[0.08] rounded-btn h-14 flex flex-col items-center justify-center gap-1 text-[11px] font-semibold text-white/70 hover:text-white hover:bg-surface/5 transition-colors"
-              >
-                <svg
-                  width={16}
-                  height={16}
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-                </svg>
-                Full Chart
-              </a>
-              <a
-                href="#"
-                className="bg-surface-2 border border-white/[0.08] rounded-btn h-14 flex flex-col items-center justify-center gap-1 text-[11px] font-semibold text-white/70 hover:text-white hover:bg-surface/5 transition-colors"
-              >
-                <svg
-                  width={16}
-                  height={16}
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <line x1={18} y1={20} x2={18} y2={10} />
-                  <line x1={12} y1={20} x2={12} y2={4} />
-                  <line x1={6} y1={20} x2={6} y2={14} />
-                </svg>
-                Statistics
-              </a>
-              <a
-                href="asset-news.html"
-                className="bg-surface-2 border border-white/[0.08] rounded-btn h-14 flex flex-col items-center justify-center gap-1 text-[11px] font-semibold text-white/70 hover:text-white hover:bg-surface/5 transition-colors"
-              >
-                <svg
-                  width={16}
-                  height={16}
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                </svg>
-                News
-              </a>
-            </div>
+
             {botStatus === "preparing" && (
-              <div className="mx-5 mb-3 rounded-2xl border border-primary/20 bg-surface p-4">
+              <div className="mx-5 mb-2 rounded-2xl border border-primary/20 bg-surface p-4">
                 <div className="flex justify-between mb-3">
                   <span className="text-primary font-bold">
                     🤖 QBOT PREPARING
@@ -745,7 +687,7 @@ export default function coindetails() {
               </div>
             )}
             {(botStatus === "running" || botStatus === "completed") && (
-              <div className="mx-5 mb-3 rounded-2xl border border-green-500/30 bg-surface p-4">
+              <div className="mx-5 mb-2 rounded-2xl border border-green-500/30 bg-surface p-4">
                 <div className="flex justify-between items-center mb-2">
                   <span className="font-bold text-green-400">
                     💰 QBOT PROFIT
@@ -779,7 +721,7 @@ export default function coindetails() {
               </div>
             )}
             {/* Trade buttons */}
-            <div className="px-5 mb-4">
+            <div className="px-5 mb-4 pt-4">
               <button
                 onClick={async () => {
                   if (botStatus !== "idle") return;
