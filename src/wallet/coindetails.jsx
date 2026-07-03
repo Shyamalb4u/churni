@@ -2,7 +2,11 @@ import { useNavigate } from "react-router-dom";
 import { useParams } from "react-router-dom";
 import React, { useState, useEffect, useRef } from "react";
 import Footer from "./footer";
-import { createChart, LineSeries } from "lightweight-charts";
+import {
+  createChart,
+  CandlestickSeries,
+  HistogramSeries,
+} from "lightweight-charts";
 import Swal from "sweetalert2";
 
 export default function coindetails() {
@@ -44,6 +48,8 @@ export default function coindetails() {
   const [todayProfit, setTodayProfit] = useState(0);
   // profit colour
   const [isUp, setIsUp] = useState(true);
+  // vol ref
+  const volumeSeriesRef = useRef();
 
   // profit calculation
   // useEffect(() => {
@@ -169,7 +175,6 @@ export default function coindetails() {
       .then((res) => res.json())
       .then((data) => {
         setCoin(data);
-        setLoading(false);
       });
   }, [symbol]);
   useEffect(() => {
@@ -185,7 +190,7 @@ export default function coindetails() {
 
   useEffect(() => {
     const ws = new WebSocket(
-      `wss://stream.binance.com:9443/stream?streams=${symbol.toLowerCase()}@ticker/${symbol.toLowerCase()}@depth20@100ms`,
+      `wss://stream.binance.com:9443/stream?streams=${symbol.toLowerCase()}@ticker/${symbol.toLowerCase()}@kline_${intervalMap[interval]}/${symbol.toLowerCase()}@depth20@100ms`,
     );
 
     ws.onmessage = (event) => {
@@ -195,12 +200,13 @@ export default function coindetails() {
       if (message.stream.endsWith("@ticker")) {
         const data = message.data;
 
-        if (lineSeriesRef.current) {
-          lineSeriesRef.current.update({
-            time: Math.floor(Date.now() / 1000),
-            value: Number(data.c),
-          });
-        }
+        // if (lineSeriesRef.current) {
+        //   lineSeriesRef.current.update({
+        //     time: Math.floor(Date.now() / 1000),
+        //     value: Number(data.c),
+        //   });
+        // }
+        // Live Candle Stream
 
         setCoin((prev) => {
           if (prev?.lastPrice) {
@@ -223,6 +229,31 @@ export default function coindetails() {
         });
       }
 
+      if (message.stream.includes("@kline_")) {
+        const k = message.data.k;
+        if (lineSeriesRef.current) {
+          lineSeriesRef.current.update({
+            time: k.t / 1000,
+            open: Number(k.o),
+            high: Number(k.h),
+            low: Number(k.l),
+            close: Number(k.c),
+          });
+        }
+        const isUp = Number(k.c) >= Number(k.o);
+
+        lineSeriesRef.current.applyOptions({
+          priceLineColor: isUp ? "#0ECB81" : "#F6465D",
+        });
+        if (volumeSeriesRef.current) {
+          volumeSeriesRef.current.update({
+            time: k.t / 1000,
+            value: Number(k.v),
+            color: Number(k.c) >= Number(k.o) ? "#0ECB8166" : "#F6465D66",
+          });
+        }
+      }
+
       // Order Book Stream
       if (message.stream.endsWith("@depth20@100ms")) {
         const data = message.data;
@@ -235,25 +266,83 @@ export default function coindetails() {
     };
 
     return () => ws.close();
-  }, [symbol]);
+  }, [symbol, interval]);
 
   useEffect(() => {
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
       height: 200,
+
       layout: {
         background: { color: "#0f172a" },
         textColor: "#ffffff",
       },
-    });
 
+      grid: {
+        vertLines: {
+          visible: false,
+        },
+        horzLines: {
+          visible: false,
+        },
+      },
+
+      rightPriceScale: {
+        autoScale: true,
+        borderVisible: false,
+      },
+
+      crosshair: {
+        vertLine: {
+          visible: true,
+          labelVisible: true,
+        },
+        horzLine: {
+          visible: true,
+          labelVisible: true,
+        },
+      },
+    });
     // 👇 chart ready hoyeche ekhane
     // lineSeriesRef.current = chart.addSeries(LineSeries);
-    lineSeriesRef.current = chart.addSeries(LineSeries, {
+    // lineSeriesRef.current = chart.addSeries(LineSeries, {
+    //   priceFormat: {
+    //     type: "price",
+    //     precision: 4,
+    //     minMove: 0.0001,
+    //   },
+    // });
+    lineSeriesRef.current = chart.addSeries(CandlestickSeries, {
+      upColor: "#0ECB81",
+      downColor: "#F6465D",
+
+      borderUpColor: "#0ECB81",
+      borderDownColor: "#F6465D",
+
+      wickUpColor: "#0ECB81",
+      wickDownColor: "#F6465D",
+
+      priceLineVisible: true,
+      lastValueVisible: true,
+      // priceLineColor: "#00D4AA",
+      priceLineStyle: 2,
+    });
+    volumeSeriesRef.current = chart.addSeries(HistogramSeries, {
       priceFormat: {
-        type: "price",
-        precision: 4,
-        minMove: 0.0001,
+        type: "volume",
+      },
+      priceScaleId: "volume",
+      lastValueVisible: false,
+      priceLineVisible: false,
+    });
+
+    chart.priceScale("volume").applyOptions({
+      visible: false,
+      borderVisible: false,
+
+      scaleMargins: {
+        top: 0.75,
+        bottom: 0,
       },
     });
 
@@ -265,10 +354,22 @@ export default function coindetails() {
       .then((data) => {
         const chartData = data.map((item) => ({
           time: item[0] / 1000,
-          value: parseFloat(item[4]),
+
+          open: Number(item[1]),
+          high: Number(item[2]),
+          low: Number(item[3]),
+          close: Number(item[4]),
+        }));
+
+        const volumeData = data.map((item) => ({
+          time: item[0] / 1000,
+          value: Number(item[5]),
+          color: Number(item[4]) >= Number(item[1]) ? "#0ECB8166" : "#F6465D66",
         }));
 
         lineSeriesRef.current.setData(chartData);
+        volumeSeriesRef.current.setData(volumeData);
+        // chart.timeScale().fitContent();
       });
 
     return () => chart.remove();
@@ -485,6 +586,7 @@ export default function coindetails() {
                   1Y
                 </button>
               </div>
+
               <div ref={chartContainerRef} className="h-[200px] w-full" />
             </div>
             {/* Order Book */}
@@ -584,7 +686,7 @@ export default function coindetails() {
                 Full Chart
               </a>
               <a
-                href="coin-stats.html"
+                href="#"
                 className="bg-surface-2 border border-white/[0.08] rounded-btn h-14 flex flex-col items-center justify-center gap-1 text-[11px] font-semibold text-white/70 hover:text-white hover:bg-surface/5 transition-colors"
               >
                 <svg
@@ -646,7 +748,7 @@ export default function coindetails() {
               <div className="mx-5 mb-3 rounded-2xl border border-green-500/30 bg-surface p-4">
                 <div className="flex justify-between items-center mb-2">
                   <span className="font-bold text-green-400">
-                    💰 TODAY PROFIT
+                    💰 QBOT PROFIT
                   </span>
 
                   {/* <span className="text-xs font-bold text-green-400">LIVE</span> */}
@@ -683,14 +785,14 @@ export default function coindetails() {
                   if (botStatus !== "idle") return;
 
                   const result = await Swal.fire({
-                    title: "Start QBOT?",
+                    title: "Launch QBOT Strategy?",
                     text: "QBOT will start analyzing the market and generate AI trading signals.",
                     icon: "question",
                     showCancelButton: true,
-                    confirmButtonText: "Start",
+                    confirmButtonText: "Launch Now",
                     cancelButtonText: "Cancel",
-                    confirmButtonColor: "#3cbe1c",
-                    cancelButtonColor: "#e74949",
+                    confirmButtonColor: "#00D4AA",
+                    cancelButtonColor: "#ef4444",
                     background: "#111827",
                     color: "#ffffff",
                     reverseButtons: true,
